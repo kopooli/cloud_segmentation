@@ -22,6 +22,7 @@ class CloudSegmenter(pl.LightningModule):
         logits_mask = self.forward(images)
         # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
         loss = self.loss_fn(logits_mask, masks.float())
+        print(loss)
         # Lets compute metrics for some threshold
         # first convert mask values to probabilities, then
         # apply thresholding
@@ -42,19 +43,19 @@ class CloudSegmenter(pl.LightningModule):
             "fn": fn,
             "tn": tn,
         }
-        self.val_output.append(return_dict)
+        #self.val_output.append(return_dict)
         return return_dict
 
     def on_validation_epoch_start(self) -> None:
         super().on_validation_epoch_start()
-        self.val_output = []
+        #self.val_output = []
         return
 
     def on_validation_epoch_end(self):
         return self.shared_epoch_end("valid")
 
     def shared_epoch_end(self,  stage):
-        # aggregate step metics
+        """# aggregate step metics
         outputs = self.val_output
         tp = torch.cat([x["tp"] for x in outputs])
         fp = torch.cat([x["fp"] for x in outputs])
@@ -77,8 +78,8 @@ class CloudSegmenter(pl.LightningModule):
             f"{stage}_dataset_iou": dataset_iou,
         }
 
-        self.log_dict(metrics, prog_bar=True)
-
+        self.log_dict(metrics, prog_bar=True)"""
+        return
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")
 
