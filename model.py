@@ -1,50 +1,27 @@
+import torch
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
-class PetModel(pl.LightningModule):
 
-    def __init__(self, arch, encoder_name, in_channels, out_classes, **kwargs):
+
+class CloudSegmenter(pl.LightningModule):
+    def __init__(self, arch, encoder_name, **kwargs):
         super().__init__()
         self.model = smp.create_model(
-            arch, encoder_name=encoder_name, in_channels=in_channels, classes=out_classes, **kwargs
+            arch, encoder_name=encoder_name, in_channels=4, classes=1, **kwargs
         )
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = smp.losses.SoftCrossEntropyLoss
+        self.loss_fn = torch.nn.BCEWithLogitsLoss()
 
     def forward(self, image):
-        # normalize image here
         mask = self.model(image)
         return mask
 
     def shared_step(self, batch, stage):
-        image = batch["image"]
-
-        # Shape of the image should be (batch_size, num_channels, height, width)
-        # if you work with grayscale images, expand channels dim to have [batch_size, 1, height, width]
-        assert image.ndim == 4
-
-        # Check that image dimensions are divisible by 32,
-        # encoder and decoder connected by `skip connections` and usually encoder have 5 stages of
-        # downsampling by factor 2 (2 ^ 5 = 32); e.g. if we have image with shape 65x65 we will have
-        # following shapes of features in encoder and decoder: 84, 42, 21, 10, 5 -> 5, 10, 20, 40, 80
-        # and we will get an error trying to concat these features
-        h, w = image.shape[2:]
-        assert h % 32 == 0 and w % 32 == 0
-
-        mask = batch["mask"]
-
-        # Shape of the mask should be [batch_size, num_classes, height, width]
-        # for binary segmentation num_classes = 1
-        assert mask.ndim == 4
-
-        # Check that mask values in between 0 and 1, NOT 0 and 255 for binary segmentation
-        assert mask.max() <= 1.0 and mask.min() >= 0
-
-        logits_mask = self.forward(image)
-
+        images, masks = batch
+        logits_mask = self.forward(images)
         # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
-        loss = self.loss_fn(logits_mask, mask)
-
+        loss = self.loss_fn(logits_mask, masks.float())
         # Lets compute metrics for some threshold
         # first convert mask values to probabilities, then
         # apply thresholding
@@ -57,18 +34,28 @@ class PetModel(pl.LightningModule):
         # but for now we just compute true positive, false positive, false negative and
         # true negative 'pixels' for each image and class
         # these values will be aggregated in the end of an epoch
-        tp, fp, fn, tn = smp.metrics.get_stats(pred_mask.long(), mask.long(), mode="binary")
-
-        return {
+        tp, fp, fn, tn = smp.metrics.get_stats(pred_mask.long(), masks.long(), mode="binary")
+        return_dict = {
             "loss": loss,
             "tp": tp,
             "fp": fp,
             "fn": fn,
             "tn": tn,
         }
+        self.val_output.append(return_dict)
+        return return_dict
 
-    def shared_epoch_end(self, outputs, stage):
+    def on_validation_epoch_start(self) -> None:
+        super().on_validation_epoch_start()
+        self.val_output = []
+        return
+
+    def on_validation_epoch_end(self):
+        return self.shared_epoch_end("valid")
+
+    def shared_epoch_end(self,  stage):
         # aggregate step metics
+        outputs = self.val_output
         tp = torch.cat([x["tp"] for x in outputs])
         fp = torch.cat([x["fp"] for x in outputs])
         fn = torch.cat([x["fn"] for x in outputs])
@@ -95,20 +82,11 @@ class PetModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")
 
-    def training_epoch_end(self, outputs):
-        return self.shared_epoch_end(outputs, "train")
-
     def validation_step(self, batch, batch_idx):
         return self.shared_step(batch, "valid")
-
-    def validation_epoch_end(self, outputs):
-        return self.shared_epoch_end(outputs, "valid")
 
     def test_step(self, batch, batch_idx):
         return self.shared_step(batch, "test")
 
-    def test_epoch_end(self, outputs):
-        return self.shared_epoch_end(outputs, "test")
-
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.0001)
+        return torch.optim.Adam(self.parameters(), lr=0.001)
