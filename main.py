@@ -23,11 +23,11 @@ validation_dataset = CloudDataset(
     data_path, mask_path, validation_scenes, "validation", transform
 )
 n_cpu = os.cpu_count()
-train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=4)
-valid_dataloader = DataLoader(validation_dataset, batch_size=8, shuffle=False, num_workers=4)
-test_dataloader = DataLoader(test_dataset, batch_size=8, shuffle=False, num_workers=4)
+train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=8)
+valid_dataloader = DataLoader(validation_dataset, batch_size=32, shuffle=False, num_workers=8)
+test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=8)
 
-model = CloudSegmenter("Unet", "efficientnet-b0")
+model = CloudSegmenter("Linknet", "timm-mobilenetv3_small_minimal_100")
 
 trainer = pl.Trainer(
     accelerator="cpu",

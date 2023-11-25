@@ -23,6 +23,7 @@ class CloudDataset(Dataset):
         self.scenes = scenes
         self.transform = transform
         self.type = type
+        print(len(self.scenes) * TILES_PER_IMAGE)
 
     def __len__(self):
         return len(self.scenes)*TILES_PER_IMAGE

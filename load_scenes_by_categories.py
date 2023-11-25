@@ -29,13 +29,13 @@ area_list = [
 
 def load_scenes_by_categories():
     df_by_categories = []
-    no_cat_scenes = df_overview
+    no_catg_scenes = df_overview
     for category in area_list:
         temp_df = df_overview[df_overview[category] == 1]
-        no_cat_scenes = no_cat_scenes[df_overview[category] == 0]
+        no_catg_scenes = no_catg_scenes[df_overview[category] == 0]
         df_by_categories.append(temp_df)
 
-    df_by_categories.append(no_cat_scenes)
+    df_by_categories.append(no_catg_scenes)
     train_scenes = set()
     validation_scenes = set()
     test_scenes = set()
