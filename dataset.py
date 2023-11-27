@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 import numpy as np
 import os
-from utils import get_tile
+from tiling import get_tile
 from torchvision import transforms
 
 TILE_SIZE = 224
@@ -9,7 +9,7 @@ IMG_SIZE = 1022
 # tiles does not fit perfectly into the image, so there is going to be overlap on 2 sides and one extra tile in corner
 
 TILES_PER_IMAGE = (
-    pow(TILE_SIZE*(IMG_SIZE // TILE_SIZE), 2) // pow(TILE_SIZE, 2)
+    pow(TILE_SIZE * (IMG_SIZE // TILE_SIZE), 2) // pow(TILE_SIZE, 2)
     + 2 * (IMG_SIZE // TILE_SIZE)
     + 1
 )
@@ -26,7 +26,7 @@ class CloudDataset(Dataset):
         print(len(self.scenes) * TILES_PER_IMAGE)
 
     def __len__(self):
-        return len(self.scenes)*TILES_PER_IMAGE
+        return len(self.scenes) * TILES_PER_IMAGE
 
     def __getitem__(self, index):
         image_index = index // TILES_PER_IMAGE

@@ -25,6 +25,15 @@ area_list = [
     "open_water",
     "enclosed_water",
 ]
+area_list = [
+    "cumulus",
+    "cumulonimbus",
+    "altocumulus/stratocumulus",
+    "cirrus",
+    "haze/fog",
+    "ice_clouds",
+    "contrails",
+]
 
 
 def load_scenes_by_categories():
@@ -66,4 +75,5 @@ def load_scenes_by_categories():
     remove_duplicate_scenes(train_scenes, validation_scenes)
     remove_duplicate_scenes(test_scenes, train_scenes)
     remove_duplicate_scenes(validation_scenes, test_scenes)
+    print(len(train_scenes), len(validation_scenes), len(test_scenes))
     return list(train_scenes), list(validation_scenes), list(test_scenes)
