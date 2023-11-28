@@ -12,8 +12,8 @@ class CloudSegmenter(pl.LightningModule):
         )
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = torch.nn.BCEWithLogitsLoss()
-        # self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
+        #self.loss_fn = torch.nn.BCEWithLogitsLoss()
+        self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
 
     def forward(self, image):
         mask = self.model(image)
@@ -100,11 +100,7 @@ class CloudSegmenter(pl.LightningModule):
         # apply thresholding
         prob_mask = logits_mask.sigmoid()
         pred_mask = (prob_mask > 0.5).int()
-        print(pred_mask.shape)
-        print(masks.shape)
         pred_mask, masks = get_picture_from_tiles(pred_mask, masks)
-        print(pred_mask.shape)
-        print(masks.shape)
         # We will compute IoU metric by two ways
         #   1. dataset-wise
         #   2. image-wise
