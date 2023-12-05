@@ -1,16 +1,21 @@
 import numpy as np
 import pandas as pd
-
-
-def remove_duplicate_scenes(remove_from_set, keep_set):
-    intersection = keep_set.intersection(remove_from_set)
-    for element in intersection:
-        remove_from_set.remove(element)
-
-
 np.random.seed(100)
+
+def remove_duplicate_scenes(first_set, second_set):
+    intersection = list(first_set.intersection(second_set))
+    intersection.sort()
+    np.random.shuffle(intersection)
+    one_half_index = len(intersection) // 2
+    for element in intersection[:one_half_index]:
+        first_set.remove(element)
+    for element in intersection[one_half_index:]:
+        second_set.remove(element)
+
+
 df_overview_path = "./data/classification_tags.csv"
 df_overview = pd.read_csv(df_overview_path)
+df_overview.sort_values(by=["scene"])
 
 area_list = [
     "forest/jungle",
@@ -25,6 +30,7 @@ area_list = [
     "open_water",
     "enclosed_water",
 ]
+"""
 area_list = [
     "cumulus",
     "cumulonimbus",
@@ -33,7 +39,7 @@ area_list = [
     "haze/fog",
     "ice_clouds",
     "contrails",
-]
+]"""
 
 
 def load_scenes_by_categories():
@@ -56,24 +62,20 @@ def load_scenes_by_categories():
 
         scenes = df["scene"].tolist()  # Assuming "scene" is a column in df
         np.random.shuffle(scenes)  # Shuffle the scenes in-place
+
         train_scenes = train_scenes.union(set(scenes[:train_size]))
         validation_scenes = validation_scenes.union(
             set(scenes[train_size : train_size + validation_size])
         )
-        test_scenes = test_scenes.union(
-            set(
-                scenes[
-                    train_size
-                    + validation_size : train_size
-                    + validation_size
-                    + test_size
-                ]
-            )
-        )
+        test_scenes = test_scenes.union(set(scenes[train_size+ validation_size:]))
     # there are few scenes with more area types
-
     remove_duplicate_scenes(train_scenes, validation_scenes)
     remove_duplicate_scenes(test_scenes, train_scenes)
     remove_duplicate_scenes(validation_scenes, test_scenes)
-    print(len(train_scenes), len(validation_scenes), len(test_scenes))
-    return list(train_scenes), list(validation_scenes), list(test_scenes)
+    train_scenes = list(train_scenes)
+    validation_scenes = list(validation_scenes)
+    test_scenes = list(test_scenes)
+    train_scenes.sort()
+    validation_scenes.sort()
+    test_scenes.sort()
+    return train_scenes, validation_scenes, test_scenes

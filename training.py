@@ -25,16 +25,17 @@ validation_dataset = CloudDataset(
 )
 n_cpu = os.cpu_count()
 train_dataloader = DataLoader(
-    train_dataset, batch_size=32, shuffle=True, num_workers=n_cpu
+    train_dataset, batch_size=32, shuffle=True, num_workers=n_cpu-1
 )
 valid_dataloader = DataLoader(
-    validation_dataset, batch_size=32, shuffle=False, num_workers=n_cpu
+    validation_dataset, batch_size=32, shuffle=False, num_workers=n_cpu-1
 )
 test_dataloader = DataLoader(
-    test_dataset, batch_size=32, shuffle=False, num_workers=n_cpu
+    test_dataset, batch_size=32, shuffle=False, num_workers=n_cpu-1
 )
 
-model = CloudSegmenter("Linknet", "timm-mobilenetv3_small_minimal_100")
+#model = CloudSegmenter("Linknet", "efficientnet-b0")
+model = CloudSegmenter.load_from_checkpoint("./lightning_logs/0,0001__cross_efficientnet_linknet_cloud_categories/checkpoints/checkpoints_train/epoch_epoch=06-step_step=2051.ckpt", arch="Linknet", encoder_name="timm-mobilenetv3_small_minimal_100", print_pictures=False)
 
 callbacks = [
     ModelCheckpoint(

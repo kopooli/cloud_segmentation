@@ -1,19 +1,25 @@
 import torch
+import os
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
-from tiling import get_picture_from_tiles
+from tiling import get_masks_from_tiles, get_picture_from_tile
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
+
+
 
 
 class CloudSegmenter(pl.LightningModule):
-    def __init__(self, arch, encoder_name, **kwargs):
+    def __init__(self, arch, encoder_name, print_pictures, **kwargs):
         super().__init__()
         self.model = smp.create_model(
             arch, encoder_name=encoder_name, in_channels=4, classes=1, **kwargs
         )
-
+        self.print_pictures = print_pictures
         # for image segmentation dice loss could be the best first choice
-        #self.loss_fn = torch.nn.BCEWithLogitsLoss()
-        self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
+        self.loss_fn = torch.nn.BCEWithLogitsLoss()
+        #self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
 
     def forward(self, image):
         mask = self.model(image)
@@ -59,6 +65,7 @@ class CloudSegmenter(pl.LightningModule):
         self.fp = 0
         self.fn = 0
         self.tn = 0
+        self.idddd = 0
         return
 
     def on_validation_epoch_end(self):
@@ -91,7 +98,7 @@ class CloudSegmenter(pl.LightningModule):
         return self.shared_step(batch, "valid")
 
     def test_step(self, batch, batch_idx):
-        images, masks = batch
+        images, masks, scene = batch
         logits_mask = self.forward(images)
         # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
         loss = self.loss_fn(logits_mask, masks.float())
@@ -100,13 +107,23 @@ class CloudSegmenter(pl.LightningModule):
         # apply thresholding
         prob_mask = logits_mask.sigmoid()
         pred_mask = (prob_mask > 0.5).int()
-        pred_mask, masks = get_picture_from_tiles(pred_mask, masks)
-        # We will compute IoU metric by two ways
-        #   1. dataset-wise
-        #   2. image-wise
-        # but for now we just compute true positive, false positive, false negative and
-        # true negative 'pixels' for each image and class
-        # these values will be aggregated in the end of an epoch
+        pred_mask, masks = get_masks_from_tiles(pred_mask, masks.int())
+
+        if self.print_pictures:
+            pred_mask_squeezed, mask_squeezed = pred_mask.squeeze(), masks.squeeze()
+            pred_np, mask_np = pred_mask_squeezed.numpy(), mask_squeezed.numpy()
+            whole_image = get_picture_from_tile(images)
+            whole_image = whole_image[[0,1,2],:,:].numpy().transpose((1, 2, 0))
+            whole_image = np.clip(whole_image, 0, 1)*255
+
+            path = "./save_images"
+            if not os.path.exists(path):
+                os.makedirs(path)
+            plt.imsave(f'{path}/{self.idddd}_pred_{scene[0]}.png', pred_np, cmap=cm.gray, vmin=0, vmax=1)
+            plt.imsave(f'{path}/{self.idddd}_truth_{scene[0]}.png', mask_np, cmap=cm.gray, vmin=0, vmax=1)
+            plt.imsave(f'{path}/{self.idddd}_image_{scene[0]}.png', np.ascontiguousarray(whole_image.astype("uint8")))
+            self.idddd += 1
+
         tp, fp, fn, tn = smp.metrics.get_stats(
             pred_mask.long(), masks.long(), mode="binary"
         )
@@ -117,4 +134,4 @@ class CloudSegmenter(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.0001)
+        return torch.optim.Adam(self.parameters(), lr=0.00004)
