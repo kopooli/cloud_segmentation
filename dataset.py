@@ -20,8 +20,8 @@ class CloudDataset(Dataset):
 
     def __getitem__(self, index):
         image_index = index // tiling.TILES_PER_IMAGE
-        image, mask, scene = self.shared_get_item_logic(index, image_index, double=False)
-        return image, mask, scene
+        image, mask = self.shared_get_item_logic(index, image_index, double=False)
+        return image, mask
 
     def shared_get_item_logic(self, index, image_index, double):
         desired_channels = [3, 2, 1, 7]
@@ -38,7 +38,7 @@ class CloudDataset(Dataset):
         if self.transform:
             image = self.transform(image)
             mask = self.transform(mask).int()
-        return image, mask, scene
+        return image, mask
 
 
 class CloudDatasetDoubleTiles(CloudDataset):

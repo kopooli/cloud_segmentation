@@ -23,36 +23,35 @@ class CloudSegmenter(pl.LightningModule):
 
     def forward(self, image):
         mask = self.model(image)
-        return mask
+        if self.training:
+            return mask
+        prob_mask = mask.sigmoid()
+        pred_mask = (prob_mask > 0.5).int()
+        return pred_mask
 
-    def shared_step(self, batch, stage):
+    def shared_evaluation_step_beginning(self, batch):
         images, masks = batch
         logits_mask = self.forward(images)
-        # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
         loss = self.loss_fn(logits_mask, masks.float())
-        # Lets compute metrics for some threshold
-        # first convert mask values to probabilities, then
-        # apply thresholding
-        prob_mask = logits_mask.sigmoid()
-        pred_mask = (prob_mask > 0.5).float()
+        prob_masks = logits_mask.sigmoid()
+        pred_masks = (prob_masks > 0.5).int()
+        return loss, pred_masks, masks, images
 
-        # We will compute IoU metric by two ways
-        #   1. dataset-wise
-        #   2. image-wise
-        # but for now we just compute true positive, false positive, false negative and
-        # true negative 'pixels' for each image and class
-        # these values will be aggregated in the end of an epoch
+    def shared_evaluation_step_end(self, predicted_mask, truth_mask):
         tp, fp, fn, tn = smp.metrics.get_stats(
-            pred_mask.long(), masks.long(), mode="binary"
+            predicted_mask.long(), truth_mask.long(), mode="binary"
         )
         self.tp += torch.sum(tp)
         self.fp += torch.sum(fp)
         self.fn += torch.sum(fn)
         self.tn += torch.sum(tn)
+
+    def validation_step(self, batch, batch_idx):
+        loss, predicted_masks, truth_masks, _ = self.shared_evaluation_step(batch)
+        self.shared_evaluation_step_end(predicted_masks, truth_masks)
         return loss
 
     def on_validation_epoch_start(self) -> None:
-        super().on_validation_epoch_start()
         self.tp = 0
         self.fp = 0
         self.fn = 0
@@ -60,12 +59,8 @@ class CloudSegmenter(pl.LightningModule):
         return
 
     def on_test_epoch_start(self) -> None:
-        super().on_test_epoch_start()
-        self.tp = 0
-        self.fp = 0
-        self.fn = 0
-        self.tn = 0
-        self.idddd = 0
+        self.on_validation_epoch_start()
+        self.id = 0
         return
 
     def on_validation_epoch_end(self):
@@ -75,7 +70,6 @@ class CloudSegmenter(pl.LightningModule):
         return self.shared_epoch_end(("testing"))
 
     def shared_epoch_end(self, stage):
-        # aggregate step metics
         producer_accuracy = self.tp / (self.tp + self.fn)
         user_accuracy = self.tp / (self.tp + self.fp)
         balanced_accuracy = 0.5 * (producer_accuracy + (self.tn / (self.tn + self.fp)))
@@ -94,44 +88,28 @@ class CloudSegmenter(pl.LightningModule):
         loss = self.loss_fn(logits_mask, masks.float())
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        return self.shared_step(batch, "valid")
-
     def test_step(self, batch, batch_idx):
-        images, masks, scene = batch
-        logits_mask = self.forward(images)
-        # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
-        loss = self.loss_fn(logits_mask, masks.float())
-        # Lets compute metrics for some threshold
-        # first convert mask values to probabilities, then
-        # apply thresholding
-        prob_mask = logits_mask.sigmoid()
-        pred_mask = (prob_mask > 0.5).int()
-        pred_mask, masks = get_masks_from_tiles(pred_mask, masks.int())
-
+        loss, predicted_masks, truth_masks, tiles = self.shared_evaluation_step(batch)
+        pred_mask, masks = get_masks_from_tiles(predicted_masks, truth_masks.int())
         if self.print_pictures:
-            pred_mask_squeezed, mask_squeezed = pred_mask.squeeze(), masks.squeeze()
-            pred_np, mask_np = pred_mask_squeezed.numpy(), mask_squeezed.numpy()
-            whole_image = get_picture_from_tile(images)
-            whole_image = whole_image[[0,1,2],:,:].numpy().transpose((1, 2, 0))
-            whole_image = np.clip(whole_image, 0, 1)*255
-
-            path = "./save_images"
-            if not os.path.exists(path):
-                os.makedirs(path)
-            plt.imsave(f'{path}/{self.idddd}_pred_{scene[0]}.png', pred_np, cmap=cm.gray, vmin=0, vmax=1)
-            plt.imsave(f'{path}/{self.idddd}_truth_{scene[0]}.png', mask_np, cmap=cm.gray, vmin=0, vmax=1)
-            plt.imsave(f'{path}/{self.idddd}_image_{scene[0]}.png', np.ascontiguousarray(whole_image.astype("uint8")))
-            self.idddd += 1
-
-        tp, fp, fn, tn = smp.metrics.get_stats(
-            pred_mask.long(), masks.long(), mode="binary"
-        )
-        self.tp += torch.sum(tp)
-        self.fp += torch.sum(fp)
-        self.fn += torch.sum(fn)
-        self.tn += torch.sum(tn)
+            self.save_pictures(pred_mask, masks, tiles)
+        self.shared_evaluation_step_end(predicted_masks, truth_masks)
         return loss
 
+    def save_pictures(self, predicted_mask, truth_mask, image_tiles):
+        pred_mask_squeezed, mask_squeezed = predicted_mask.squeeze(), truth_mask.squeeze()
+        pred_np, mask_np = pred_mask_squeezed.numpy(), mask_squeezed.numpy()
+        whole_image = get_picture_from_tile(image_tiles)
+        whole_image = whole_image[[0, 1, 2], :, :].numpy().transpose((1, 2, 0))
+        whole_image = np.clip(whole_image, 0, 1) * 255
+
+        path = "./save_images"
+        if not os.path.exists(path):
+            os.makedirs(path)
+        plt.imsave(f'{path}/{self.id}_pred.png', pred_np, cmap=cm.gray, vmin=0, vmax=1)
+        plt.imsave(f'{path}/{self.id}_truth.png', mask_np, cmap=cm.gray, vmin=0, vmax=1)
+        plt.imsave(f'{path}/{self.id}_image.png', np.ascontiguousarray(whole_image.astype("uint8")))
+        self.id += 1
+
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.00004)
+        return torch.optim.Adam(self.parameters(), lr=0.0001)

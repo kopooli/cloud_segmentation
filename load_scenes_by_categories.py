@@ -30,8 +30,8 @@ area_list = [
     "open_water",
     "enclosed_water",
 ]
-"""
-area_list = [
+
+"""area_list = [
     "cumulus",
     "cumulonimbus",
     "altocumulus/stratocumulus",
@@ -57,7 +57,7 @@ def load_scenes_by_categories():
     for df in df_by_categories:
         num_scenes = len(df)
         test_size = round(0.2 * num_scenes)
-        validation_size = round(0.1 * num_scenes)
+        validation_size = round(0.15 * num_scenes)
         train_size = num_scenes - test_size - validation_size
 
         scenes = df["scene"].tolist()  # Assuming "scene" is a column in df
