@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+
 np.random.seed(100)
+
 
 def remove_duplicate_scenes(first_set, second_set):
     intersection = list(first_set.intersection(second_set))
@@ -67,7 +69,7 @@ def load_scenes_by_categories():
         validation_scenes = validation_scenes.union(
             set(scenes[train_size : train_size + validation_size])
         )
-        test_scenes = test_scenes.union(set(scenes[train_size+ validation_size:]))
+        test_scenes = test_scenes.union(set(scenes[train_size + validation_size :]))
     # there are few scenes with more area types
     remove_duplicate_scenes(train_scenes, validation_scenes)
     remove_duplicate_scenes(test_scenes, train_scenes)

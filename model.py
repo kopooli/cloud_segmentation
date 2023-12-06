@@ -8,8 +8,6 @@ import matplotlib.cm as cm
 import numpy as np
 
 
-
-
 class CloudSegmenter(pl.LightningModule):
     def __init__(self, arch, encoder_name, print_pictures, **kwargs):
         super().__init__()
@@ -19,7 +17,7 @@ class CloudSegmenter(pl.LightningModule):
         self.print_pictures = print_pictures
         # for image segmentation dice loss could be the best first choice
         self.loss_fn = torch.nn.BCEWithLogitsLoss()
-        #self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
+        # self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
 
     def forward(self, image):
         mask = self.model(image)
@@ -27,6 +25,7 @@ class CloudSegmenter(pl.LightningModule):
             return mask
         prob_mask = mask.sigmoid()
         pred_mask = (prob_mask > 0.5).int()
+        pred_mask = pred_mask.squeeze()
         return pred_mask
 
     def shared_evaluation_step_beginning(self, batch):
@@ -97,7 +96,10 @@ class CloudSegmenter(pl.LightningModule):
         return loss
 
     def save_pictures(self, predicted_mask, truth_mask, image_tiles):
-        pred_mask_squeezed, mask_squeezed = predicted_mask.squeeze(), truth_mask.squeeze()
+        pred_mask_squeezed, mask_squeezed = (
+            predicted_mask.squeeze(),
+            truth_mask.squeeze(),
+        )
         pred_np, mask_np = pred_mask_squeezed.numpy(), mask_squeezed.numpy()
         whole_image = get_picture_from_tile(image_tiles)
         whole_image = whole_image[[0, 1, 2], :, :].numpy().transpose((1, 2, 0))
@@ -106,9 +108,12 @@ class CloudSegmenter(pl.LightningModule):
         path = "./save_images"
         if not os.path.exists(path):
             os.makedirs(path)
-        plt.imsave(f'{path}/{self.id}_pred.png', pred_np, cmap=cm.gray, vmin=0, vmax=1)
-        plt.imsave(f'{path}/{self.id}_truth.png', mask_np, cmap=cm.gray, vmin=0, vmax=1)
-        plt.imsave(f'{path}/{self.id}_image.png', np.ascontiguousarray(whole_image.astype("uint8")))
+        plt.imsave(f"{path}/{self.id}_pred.png", pred_np, cmap=cm.gray, vmin=0, vmax=1)
+        plt.imsave(f"{path}/{self.id}_truth.png", mask_np, cmap=cm.gray, vmin=0, vmax=1)
+        plt.imsave(
+            f"{path}/{self.id}_image.png",
+            np.ascontiguousarray(whole_image.astype("uint8")),
+        )
         self.id += 1
 
     def configure_optimizers(self):

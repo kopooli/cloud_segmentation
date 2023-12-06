@@ -31,18 +31,18 @@ validation_dataloader = DataLoader(
 train_dataloader = DataLoader(
     train_dataset, batch_size=TILES_PER_IMAGE, shuffle=False, num_workers=n_cpu
 )
-#/home/jonas/cloud_segmentation/lightning_logs/version_157/checkpoints/checkpoints_train
+# /home/jonas/cloud_segmentation/lightning_logs/version_157/checkpoints/checkpoints_train
 model = CloudSegmenter.load_from_checkpoint(
     "./lightning_logs/version_157/checkpoints/checkpoints_train/epoch_epoch=09-step_step=4140.ckpt",
     arch="Linknet",
     encoder_name="timm-mobilenetv3_small_minimal_100",
-    print_pictures = False,
+    print_pictures=False,
 )
 
 trainer = pl.Trainer(
     accelerator="cpu",
     max_epochs=15,
 )
-#test_metrics = trainer.test(model, dataloaders=train_dataloader, verbose=False)
-#test_metrics = trainer.test(model, dataloaders=validation_dataloader, verbose=False)
+# test_metrics = trainer.test(model, dataloaders=train_dataloader, verbose=False)
+# test_metrics = trainer.test(model, dataloaders=validation_dataloader, verbose=False)
 test_metrics = trainer.test(model, dataloaders=test_dataloader, verbose=False)

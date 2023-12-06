@@ -6,7 +6,6 @@ from torchvision import transforms
 import tiling
 
 
-
 class CloudDataset(Dataset):
     def __init__(self, file_path, mask_path, scenes, type, transform=None):
         self.file_path = file_path
@@ -28,11 +27,11 @@ class CloudDataset(Dataset):
         cloudy_channel = 1
         scene = self.scenes[image_index]
         image = np.load(os.path.join(self.file_path, f"{scene}.npy"))[
-                :, :, desired_channels
-                ]
+            :, :, desired_channels
+        ]
         mask = np.load(os.path.join(self.mask_path, f"{scene}.npy"))[
-               :, :, cloudy_channel
-               ]
+            :, :, cloudy_channel
+        ]
         image, mask = get_tile(index, image, mask, double=double)
         # Apply transformations if provided
         if self.transform:
@@ -42,7 +41,6 @@ class CloudDataset(Dataset):
 
 
 class CloudDatasetDoubleTiles(CloudDataset):
-
     def __len__(self):
         return len(self.scenes) * tiling.DOUBLE_TILES_PER_IMAGE
 
