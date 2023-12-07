@@ -22,7 +22,7 @@ validation_dataset = CloudDataset(
 train_dataset = CloudDataset(data_path, mask_path, train_scenes, "train", transform)
 n_cpu = os.cpu_count()
 test_dataloader = DataLoader(
-    test_dataset, batch_size=TILES_PER_IMAGE, shuffle=False, num_workers=1
+    test_dataset, batch_size=TILES_PER_IMAGE, shuffle=False, num_workers=n_cpu
 )
 validation_dataloader = DataLoader(
     validation_dataset, batch_size=TILES_PER_IMAGE, shuffle=False, num_workers=n_cpu
@@ -30,9 +30,9 @@ validation_dataloader = DataLoader(
 train_dataloader = DataLoader(
     train_dataset, batch_size=TILES_PER_IMAGE, shuffle=False, num_workers=n_cpu
 )
-#//home/jonas/cloud_segmentation/lightning_logs/0,0001_cross_entropy_smallest_normal_tiling_goood_split/checkpoints/checkpoints_train
+# /home/jonas/cloud_segmentation/lightning_logs/0,0001_minimal_cross_double_tiling_64_batch/checkpoints/checkpoints_train
 model = CloudSegmenter.load_from_checkpoint(
-    "./lightning_logs/0,0001_cross_entropy_smallest_normal_tiling_goood_split/checkpoints/checkpoints_train/epoch_epoch=21-step_step=5632.ckpt",
+    "./lightning_logs/0,0001_minimal_cross_double_tiling_64_batch/checkpoints/checkpoints_train/epoch_epoch=18-step_step=7866.ckpt",
     arch="Linknet",
     encoder_name="timm-mobilenetv3_small_minimal_100",
     print_pictures=True,
@@ -42,6 +42,6 @@ trainer = pl.Trainer(
     accelerator="cpu",
     max_epochs=15,
 )
-# test_metrics = trainer.test(model, dataloaders=train_dataloader, verbose=False)
-# test_metrics = trainer.test(model, dataloaders=validation_dataloader, verbose=False)
+test_metrics = trainer.test(model, dataloaders=train_dataloader, verbose=False)
+test_metrics = trainer.test(model, dataloaders=validation_dataloader, verbose=False)
 test_metrics = trainer.test(model, dataloaders=test_dataloader, verbose=False)

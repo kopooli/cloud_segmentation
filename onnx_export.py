@@ -1,4 +1,3 @@
-
 import onnx
 import torch
 from model import CloudSegmenter

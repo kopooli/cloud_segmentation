@@ -8,7 +8,6 @@ import segmentation_models_pytorch as smp
 from tiling import get_masks_from_tiles, get_picture_from_tile
 
 
-
 class CloudSegmenter(pl.LightningModule):
     def __init__(self, arch, encoder_name, print_pictures, **kwargs):
         super().__init__()
@@ -86,7 +85,9 @@ class CloudSegmenter(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        predicted_masks, truth_masks, tiles = self.shared_evaluation_step_beginning(batch)
+        predicted_masks, truth_masks, tiles = self.shared_evaluation_step_beginning(
+            batch
+        )
         pred_mask, masks = get_masks_from_tiles(predicted_masks, truth_masks.int())
         if self.print_pictures:
             self.save_pictures(pred_mask, masks, tiles)

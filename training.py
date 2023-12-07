@@ -17,9 +17,7 @@ transform = transforms.Compose(
         transforms.ToTensor(),
     ]
 )
-train_dataset = CloudDataset(
-    data_path, mask_path, train_scenes, "train", transform
-)
+train_dataset = CloudDataset(data_path, mask_path, train_scenes, "train", transform)
 test_dataset = CloudDataset(data_path, mask_path, test_scenes, "test", transform)
 validation_dataset = CloudDataset(
     data_path, mask_path, validation_scenes, "validation", transform
@@ -35,9 +33,7 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=32, shuffle=False, num_workers=n_cpu - 1
 )
 
-model = CloudSegmenter(
-    "Linknet", "timm-mobilenetv3_small_100", print_pictures=False
-)
+model = CloudSegmenter("Linknet", "timm-mobilenetv3_small_100", print_pictures=False)
 # model = CloudSegmenter.load_from_checkpoint("./lightning_logs/0,0001__cross_efficientnet_linknet_cloud_categories/checkpoints/checkpoints_train/epoch_epoch=06-step_step=2051.ckpt", arch="Linknet", encoder_name="timm-mobilenetv3_small_minimal_100", print_pictures=False)
 
 callbacks = [

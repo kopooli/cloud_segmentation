@@ -33,16 +33,6 @@ area_list = [
     "enclosed_water",
 ]
 
-"""area_list = [
-    "cumulus",
-    "cumulonimbus",
-    "altocumulus/stratocumulus",
-    "cirrus",
-    "haze/fog",
-    "ice_clouds",
-    "contrails",
-]"""
-
 
 def load_scenes_by_categories():
     df_by_categories = []
