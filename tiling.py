@@ -46,13 +46,11 @@ def get_tile(index, image, mask, double):
 
 def insert_tile_into_mask(tile_height_index, tile_width_index, insert_to_image, tile):
     insert_to_image[
-        :,
         tile_height_index : tile_height_index + TILE_SIZE,
         tile_width_index : tile_width_index + TILE_SIZE,
     ] = (
         tile
         | insert_to_image[
-            :,
             tile_height_index : tile_height_index + TILE_SIZE,
             tile_width_index : tile_width_index + TILE_SIZE,
         ]
@@ -73,7 +71,7 @@ def insert_tile_into_picture(
 
 def get_masks_from_tiles(predicted_tiles, ground_truth_tiles):
     # C,H,W
-    whole_ground_truth = torch.zeros((1, IMG_SIZE, IMG_SIZE), dtype=torch.int16)
+    whole_ground_truth = torch.zeros((IMG_SIZE, IMG_SIZE), dtype=torch.int16)
     whole_predicted = whole_ground_truth.clone()
     for tile_index, predict_and_ground in enumerate(
         zip(predicted_tiles, ground_truth_tiles)

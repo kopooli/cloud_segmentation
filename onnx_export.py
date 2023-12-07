@@ -1,7 +1,9 @@
-from model import CloudSegmenter
-import torch
-from tiling import TILE_SIZE
+
 import onnx
+import torch
+from model import CloudSegmenter
+from tiling import TILE_SIZE
+
 
 model = CloudSegmenter.load_from_checkpoint(
     "./lightning_logs/0,0001_minimal_cross_double_tiling_64_batch/checkpoints/checkpoints_train/epoch_epoch=18-step_step=7866.ckpt",

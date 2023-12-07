@@ -1,9 +1,7 @@
-from torch.utils.data import Dataset
 import numpy as np
 import os
-from tiling import get_tile
-from torchvision import transforms
 import tiling
+from torch.utils.data import Dataset
 
 
 class CloudDataset(Dataset):
@@ -32,8 +30,7 @@ class CloudDataset(Dataset):
         mask = np.load(os.path.join(self.mask_path, f"{scene}.npy"))[
             :, :, cloudy_channel
         ]
-        image, mask = get_tile(index, image, mask, double=double)
-        # Apply transformations if provided
+        image, mask = tiling.get_tile(index, image, mask, double=double)
         if self.transform:
             image = self.transform(image)
             mask = self.transform(mask).int()

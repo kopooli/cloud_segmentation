@@ -1,11 +1,12 @@
-import torch
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
 import os
 import pytorch_lightning as pl
+import torch
 import segmentation_models_pytorch as smp
 from tiling import get_masks_from_tiles, get_picture_from_tile
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import numpy as np
+
 
 
 class CloudSegmenter(pl.LightningModule):
@@ -15,7 +16,6 @@ class CloudSegmenter(pl.LightningModule):
             arch, encoder_name=encoder_name, in_channels=4, classes=1, **kwargs
         )
         self.print_pictures = print_pictures
-        # for image segmentation dice loss could be the best first choice
         self.loss_fn = torch.nn.BCEWithLogitsLoss()
         # self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
 
@@ -30,11 +30,9 @@ class CloudSegmenter(pl.LightningModule):
 
     def shared_evaluation_step_beginning(self, batch):
         images, masks = batch
-        logits_mask = self.forward(images)
-        loss = self.loss_fn(logits_mask, masks.float())
-        prob_masks = logits_mask.sigmoid()
-        pred_masks = (prob_masks > 0.5).int()
-        return loss, pred_masks, masks, images
+        pred_masks = self.forward(images)
+        masks = masks.squeeze()
+        return pred_masks, masks, images
 
     def shared_evaluation_step_end(self, predicted_mask, truth_mask):
         tp, fp, fn, tn = smp.metrics.get_stats(
@@ -46,9 +44,9 @@ class CloudSegmenter(pl.LightningModule):
         self.tn += torch.sum(tn)
 
     def validation_step(self, batch, batch_idx):
-        loss, predicted_masks, truth_masks, _ = self.shared_evaluation_step(batch)
+        predicted_masks, truth_masks, _ = self.shared_evaluation_step_beginning(batch)
         self.shared_evaluation_step_end(predicted_masks, truth_masks)
-        return loss
+        return None
 
     def on_validation_epoch_start(self) -> None:
         self.tp = 0
@@ -88,19 +86,15 @@ class CloudSegmenter(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        loss, predicted_masks, truth_masks, tiles = self.shared_evaluation_step(batch)
+        predicted_masks, truth_masks, tiles = self.shared_evaluation_step_beginning(batch)
         pred_mask, masks = get_masks_from_tiles(predicted_masks, truth_masks.int())
         if self.print_pictures:
             self.save_pictures(pred_mask, masks, tiles)
         self.shared_evaluation_step_end(predicted_masks, truth_masks)
-        return loss
+        return None
 
     def save_pictures(self, predicted_mask, truth_mask, image_tiles):
-        pred_mask_squeezed, mask_squeezed = (
-            predicted_mask.squeeze(),
-            truth_mask.squeeze(),
-        )
-        pred_np, mask_np = pred_mask_squeezed.numpy(), mask_squeezed.numpy()
+        pred_np, mask_np = predicted_mask.numpy(), truth_mask.numpy()
         whole_image = get_picture_from_tile(image_tiles)
         whole_image = whole_image[[0, 1, 2], :, :].numpy().transpose((1, 2, 0))
         whole_image = np.clip(whole_image, 0, 1) * 255

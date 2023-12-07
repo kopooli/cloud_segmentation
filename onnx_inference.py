@@ -1,16 +1,15 @@
-import os
-
 import onnxruntime
-import torch
-from tiling import TILES_PER_IMAGE, get_masks_from_tiles
-import numpy as np
+import os
 import segmentation_models_pytorch as smp
+import sys
+import torch
 from tqdm import tqdm
-from dataset import CloudDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
-import os
-import sys
+from tiling import TILES_PER_IMAGE, get_masks_from_tiles
+from dataset import CloudDataset
+
+
 
 
 
@@ -55,7 +54,6 @@ for batch in tqdm(inference_dataloader, "Evaluating by picture"):
     fp_sum += torch.sum(fp)
     fn_sum += torch.sum(fn)
     tn_sum += torch.sum(tn)
-    print(tp, fp, fn, tn)
 producer_accuracy = tp_sum / (tp_sum + fn_sum)
 user_accuracy = tp_sum / (tp_sum + fp_sum)
 balanced_accuracy = 0.5 * (producer_accuracy + (tn_sum / (tn_sum + fp_sum)))
