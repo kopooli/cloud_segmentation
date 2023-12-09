@@ -5,12 +5,11 @@ from torch.utils.data import Dataset
 
 
 class CloudDataset(Dataset):
-    def __init__(self, file_path, mask_path, scenes, type, transform=None):
+    def __init__(self, file_path, mask_path, scenes, transform=None):
         self.file_path = file_path
         self.mask_path = mask_path
         self.scenes = scenes
         self.transform = transform
-        self.type = type
 
     def __len__(self):
         return len(self.scenes) * tiling.TILES_PER_IMAGE

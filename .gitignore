@@ -1,7 +1,8 @@
 /venv/
 /.git/
 /.idea/
-/data/
 /lightning_logs/
 /__pycache__/
 /save_images/
+/data/
+/pyvenv.cfg

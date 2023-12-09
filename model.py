@@ -16,7 +16,6 @@ class CloudSegmenter(pl.LightningModule):
         )
         self.print_pictures = print_pictures
         self.loss_fn = torch.nn.BCEWithLogitsLoss()
-        # self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
 
     def forward(self, image):
         mask = self.model(image)

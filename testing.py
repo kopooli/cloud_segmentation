@@ -2,10 +2,11 @@ import os
 import pytorch_lightning as pl
 from torchvision import transforms
 from torch.utils.data import DataLoader
+from dataset import CloudDataset
+from load_scenes_by_categories import load_scenes_by_categories
 from model import CloudSegmenter
 from tiling import TILES_PER_IMAGE
-from load_scenes_by_categories import load_scenes_by_categories
-from dataset import CloudDataset
+
 
 train_scenes, validation_scenes, test_scenes = load_scenes_by_categories()
 data_path = "./data/subscenes"
@@ -15,11 +16,9 @@ transform = transforms.Compose(
         transforms.ToTensor(),
     ]
 )
-test_dataset = CloudDataset(data_path, mask_path, test_scenes, "test", transform)
-validation_dataset = CloudDataset(
-    data_path, mask_path, validation_scenes, "valid", transform
-)
-train_dataset = CloudDataset(data_path, mask_path, train_scenes, "train", transform)
+test_dataset = CloudDataset(data_path, mask_path, test_scenes, transform)
+validation_dataset = CloudDataset(data_path, mask_path, validation_scenes, transform)
+train_dataset = CloudDataset(data_path, mask_path, train_scenes, transform)
 n_cpu = os.cpu_count()
 test_dataloader = DataLoader(
     test_dataset, batch_size=TILES_PER_IMAGE, shuffle=False, num_workers=n_cpu
@@ -30,7 +29,6 @@ validation_dataloader = DataLoader(
 train_dataloader = DataLoader(
     train_dataset, batch_size=TILES_PER_IMAGE, shuffle=False, num_workers=n_cpu
 )
-# /home/jonas/cloud_segmentation/lightning_logs/0,0001_minimal_cross_double_tiling_64_batch/checkpoints/checkpoints_train
 model = CloudSegmenter.load_from_checkpoint(
     "./lightning_logs/0,0001_minimal_cross_double_tiling_64_batch/checkpoints/checkpoints_train/epoch_epoch=18-step_step=7866.ckpt",
     arch="Linknet",

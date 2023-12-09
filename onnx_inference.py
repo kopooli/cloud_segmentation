@@ -3,11 +3,11 @@ import os
 import segmentation_models_pytorch as smp
 import sys
 import torch
-from tqdm import tqdm
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from tiling import TILES_PER_IMAGE, get_masks_from_tiles
+from tqdm import tqdm
 from dataset import CloudDataset
+from tiling import TILES_PER_IMAGE, get_masks_from_tiles
 
 
 tp_sum = 0
@@ -39,9 +39,7 @@ transform = transforms.Compose(
         transforms.ToTensor(),
     ]
 )
-inference_dataset = CloudDataset(
-    images_dir, label_masks_dir, image_names, "test", transform
-)
+inference_dataset = CloudDataset(images_dir, label_masks_dir, image_names, transform)
 n_cpu = os.cpu_count()
 inference_dataloader = DataLoader(
     inference_dataset, batch_size=batch_size, shuffle=False, num_workers=1
